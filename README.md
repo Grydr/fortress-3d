@@ -1,8 +1,8 @@
-# Wolfenstein 3D: Castle Escape
+# Fortress 3D: Iron Breach
 ### EF234504 · Grafika Komputer · Ujian Tengah Semester (UTS)
 **Topik 5: Escape Room 3D / Interactive 3D Mini-Game**
 
-Sebuah 3D First-Person Shooter (FPS) Interactive Mini-Game berbasis browser yang dibangun dengan **Three.js**, **JavaScript (ES Modules)**, **HTML5**, dan **CSS3**. Game ini mengusung tema legendaris *Wolfenstein 3D* dengan plot melarikan diri dari kastil bawah tanah (*Castle Wolfenstein Dungeon Escape*).
+Sebuah 3D First-Person Shooter (FPS) Interactive Mini-Game berbasis browser yang dibangun dengan **Three.js**, **JavaScript (ES Modules)**, **HTML5**, dan **CSS3**. Game ini mengusung tema legendaris *Wolfenstein 3D* dengan plot melarikan diri dari benteng bawah tanah (*Castle Wolfenstein / Iron Fortress Dungeon Escape*).
 
 ---
 
@@ -41,6 +41,23 @@ npm run preview
 | **1, 2, 3** / Scroll | Ganti Senjata (1: Pisau Tempur, 2: Pistol Luger P08, 3: MP40 Submachine Gun) |
 | **Shift** | Sprint / Lari cepat |
 | **Escape (ESC)** | Pause Menu & Pengaturan Audio / Bantuan |
+
+---
+
+## 🎨 Arsitektur UI/HUD Game-Grade (Hasil Penerapan Skill)
+
+Berdasarkan rekomendasi spesialis dari `game-ui-ux` dan `threejs-game-ui-designer`:
+1. **Dual Peripheral Anchoring (Bottom-Center Free):** Tidak lagi menggunakan dashboard padat penuh di bawah layar yang menutupi senjata 3D. HUD dipisah menjadi dua pod periferal:
+   - **Pod Vitalitas (Kiri Bawah):** Potret animasi B.J. Blazkowicz, bilah meter kesehatan bergradien dinamis (Optimal Hijau &rarr; Waspada Kuning &rarr; Kritis Merah), persentase tabular numerik, dan status nyawa.
+   - **Pod Amunisi & Senjata (Kanan Bawah):** Badge senjata aktif, meteran amunisi tabular (`32 / 99`), serta slot kunci taktis (*Silver Key* & *Gold Key*) dengan efek pulse berpendar saat diperoleh.
+   - **Area Tengah-Bawah:** Dibiarkan bebas dan transparan agar viewmodel senjata 3D dengan animasi bobbing dan recoil dapat terlihat utuh.
+2. **Top HUD Ergonomis:**
+   - **Kiri Atas:** Panel *Mission Directives* bertema dossier militer dengan indikator radar aktif.
+   - **Kanan Atas:** Housing radar taktis terintegrasi dengan telemetri `FLOOR` dan `SCORE`, lengkap dengan arah mata angin `N`.
+3. **Harmoni Warna 60-30-10:**
+   - 60% Substrat gelap gunmetal slate (`rgba(9, 13, 22, 0.9)` dengan *backdrop-filter blur*).
+   - 30% Struktur rangka baja dingin dan chamfer beveled border (`#334155`).
+   - 10% Aksen status berbobot tinggi (Kesehatan Hijau/Merah, Amunisi & Kunci Emas Kuning, Energi Portal Cyan).
 
 ---
 

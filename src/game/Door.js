@@ -121,6 +121,18 @@ export class Door {
   }
 
   /**
+   * Enemy opening a normal door along their path
+   */
+  openByEnemy() {
+    if (this.type === 'normal' && !this.isOpen && !this.isOpening) {
+      this.isOpening = true;
+      sound.playDoorOpen();
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Try interacting with door (called via Raycaster or proximity E)
    */
   interact(inventory, onFeedback) {

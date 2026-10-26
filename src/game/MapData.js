@@ -59,13 +59,13 @@ export const MAP_LAYOUT = [
 
 // Entity Placements & Coordinates (Grid x, Grid z)
 export const ENTITY_SPAWNS = [
-  // Enemies
-  { type: 'guard', x: 1, z: 6, rot: 0, patrol: [{ x: 1, z: 6 }, { x: 3, z: 6 }, { x: 1, z: 8 }] },
+  // Enemies (Positions and strictly valid open corridor waypoints)
+  { type: 'guard', x: 1, z: 6, rot: 0, patrol: [{ x: 1, z: 6 }, { x: 3, z: 6 }, { x: 3, z: 8 }, { x: 1, z: 8 }] },
   { type: 'guard', x: 6, z: 4, rot: Math.PI / 2, patrol: [{ x: 6, z: 4 }, { x: 9, z: 4 }] },
   { type: 'guard', x: 6, z: 14, rot: -Math.PI / 2, patrol: [{ x: 6, z: 14 }, { x: 6, z: 17 }] },
   { type: 'guard', x: 9, z: 8, rot: 0, patrol: [{ x: 9, z: 8 }, { x: 9, z: 6 }] },
-  { type: 'guard', x: 16, z: 8, rot: Math.PI, patrol: [{ x: 16, z: 8 }, { x: 19, z: 8 }] },
-  { type: 'guard', x: 18, z: 11, rot: -Math.PI / 2, patrol: [{ x: 18, z: 11 }, { x: 15, z: 11 }] },
+  { type: 'guard', x: 16, z: 8, rot: Math.PI, patrol: [{ x: 16, z: 8 }, { x: 18, z: 8 }] },
+  { type: 'guard', x: 18, z: 11, rot: -Math.PI / 2, patrol: [{ x: 18, z: 11 }, { x: 16, z: 11 }] },
   // Boss SS Officer in Sector B
   { type: 'officer', x: 18, z: 9, rot: Math.PI, dropsGoldKey: true, dropsMP40: true },
 

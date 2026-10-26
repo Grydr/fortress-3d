@@ -6,12 +6,125 @@ export class VFXManager {
     this.scene = scene;
     this.particles = [];
     this.shockwaves = [];
+    this.tracers = [];
     this.torches = [];
     this.portalVFX = null;
 
     this.radialTexture = TextureGenerator.getRadialParticle();
     this.bloodTexture = TextureGenerator.getBloodParticle();
     this.smokeTexture = TextureGenerator.getSmokeParticle();
+  }
+
+  /**
+   * High-Impact 3D Bullet Tracer & Lingering Vapor Trail
+   * Allows player and enemy shots to be visually traced across 3D space.
+   */
+  createBulletTracer(startPos, endPos, isPlayer = true) {
+    const dist = startPos.distanceTo(endPos);
+    if (dist < 0.2) return;
+
+    const dir = endPos.clone().sub(startPos).normalize();
+    const midPoint = startPos.clone().add(endPos).multiplyScalar(0.5);
+
+    // 1. Persistent Glowing Tracer Trail Beam (slender cylinder oriented along trajectory)
+    const beamRadius = isPlayer ? 0.022 : 0.026;
+    const beamGeo = new THREE.CylinderGeometry(beamRadius, beamRadius, dist, 5, 1, true);
+    const beamColor = isPlayer ? 0xffb833 : 0xff3311;
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: beamColor,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const beamMesh = new THREE.Mesh(beamGeo, beamMat);
+    beamMesh.position.copy(midPoint);
+    beamMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+
+    // Inner Core Beam (Brilliant intense luminous core)
+    const coreRadius = beamRadius * 0.45;
+    const coreGeo = new THREE.CylinderGeometry(coreRadius, coreRadius, dist, 4, 1, true);
+    const coreColor = isPlayer ? 0xffffff : 0xffe0bb;
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: coreColor,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    beamMesh.add(coreMesh);
+
+    this.scene.add(beamMesh);
+
+    // 2. High-Speed Luminous Bullet Slug (Streaks rapidly from start to end)
+    const slugRadius = isPlayer ? 0.045 : 0.055;
+    const slugGeo = new THREE.SphereGeometry(slugRadius, 6, 6);
+    const slugMat = new THREE.MeshBasicMaterial({
+      color: isPlayer ? 0xffffff : 0xffaa66,
+      transparent: true,
+      opacity: 1.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const slugMesh = new THREE.Mesh(slugGeo, slugMat);
+    slugMesh.position.copy(startPos);
+    this.scene.add(slugMesh);
+
+    // 3. Register Tracer into this.tracers
+    this.tracers.push({
+      beamMesh,
+      beamMat,
+      coreMesh,
+      coreMat,
+      slugMesh,
+      slugMat,
+      start: startPos.clone(),
+      end: endPos.clone(),
+      dist,
+      speed: isPlayer ? 140.0 : 90.0,
+      slugProgress: 0,
+      slugAlive: true,
+      life: 0.28,
+      maxLife: 0.28,
+    });
+
+    // 4. Subtle Smoke Trail Wisps (2-3 drifting micro-puffs along the trajectory)
+    const numWisps = Math.min(4, Math.floor(dist / 4));
+    for (let i = 1; i <= numWisps; i++) {
+      const fraction = i / (numWisps + 1);
+      const wispPos = startPos.clone().lerp(endPos, fraction);
+      wispPos.x += (Math.random() - 0.5) * 0.08;
+      wispPos.y += (Math.random() - 0.5) * 0.08;
+      wispPos.z += (Math.random() - 0.5) * 0.08;
+
+      const wispGeo = new THREE.PlaneGeometry(0.12, 0.12);
+      const wispMat = new THREE.MeshBasicMaterial({
+        map: this.smokeTexture,
+        transparent: true,
+        opacity: 0.45,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const wispMesh = new THREE.Mesh(wispGeo, wispMat);
+      wispMesh.position.copy(wispPos);
+      this.scene.add(wispMesh);
+
+      this.particles.push({
+        mesh: wispMesh,
+        mat: wispMat,
+        vel: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.15,
+          0.15 + Math.random() * 0.2,
+          (Math.random() - 0.5) * 0.15
+        ),
+        life: 0.35 + Math.random() * 0.15,
+        maxLife: 0.5,
+        scaleSpeed: 0.3,
+      });
+    }
   }
 
   /**
@@ -386,7 +499,49 @@ export class VFXManager {
       sw.mat.opacity = (sw.life / sw.maxLife) * 0.85;
     }
 
-    // 3. Torch Sconces: Flame flicker and ember spawn
+    // 3. Update Bullet Tracers & Lingering Vapor Trails
+    for (let i = this.tracers.length - 1; i >= 0; i--) {
+      const t = this.tracers[i];
+
+      // Update High-Speed Bullet Slug
+      if (t.slugAlive) {
+        t.slugProgress += (t.speed * delta) / t.dist;
+        if (t.slugProgress >= 1.0) {
+          t.slugAlive = false;
+          this.scene.remove(t.slugMesh);
+          t.slugMesh.geometry.dispose();
+          t.slugMat.dispose();
+        } else {
+          t.slugMesh.position.lerpVectors(t.start, t.end, t.slugProgress);
+        }
+      }
+
+      // Fade Out Lingering Trail Beam
+      t.life -= delta;
+      if (t.life <= 0) {
+        this.scene.remove(t.beamMesh);
+        t.beamMesh.geometry.dispose();
+        t.beamMat.dispose();
+        t.coreMesh.geometry.dispose();
+        t.coreMat.dispose();
+        if (t.slugAlive) {
+          this.scene.remove(t.slugMesh);
+          t.slugMesh.geometry.dispose();
+          t.slugMat.dispose();
+        }
+        this.tracers.splice(i, 1);
+        continue;
+      }
+
+      const factor = t.life / t.maxLife;
+      t.beamMat.opacity = Math.pow(factor, 1.4) * 0.85;
+      t.coreMat.opacity = Math.pow(factor, 1.8) * 0.95;
+      const expandScale = 1.0 + (1.0 - factor) * 1.8;
+      t.beamMesh.scale.x = expandScale;
+      t.beamMesh.scale.z = expandScale;
+    }
+
+    // 4. Torch Sconces: Flame flicker and ember spawn
     const timeNow = performance.now() * 0.005;
     for (const torch of this.torches) {
       // Natural torch flickering with Perlin-like sin waves
@@ -456,5 +611,20 @@ export class VFXManager {
       sw.mat.dispose();
     }
     this.shockwaves = [];
+    for (const t of this.tracers) {
+      if (t.beamMesh) {
+        this.scene.remove(t.beamMesh);
+        t.beamMesh.geometry.dispose();
+        t.beamMat.dispose();
+        t.coreMesh.geometry.dispose();
+        t.coreMat.dispose();
+      }
+      if (t.slugAlive && t.slugMesh) {
+        this.scene.remove(t.slugMesh);
+        t.slugMesh.geometry.dispose();
+        t.slugMat.dispose();
+      }
+    }
+    this.tracers = [];
   }
 }

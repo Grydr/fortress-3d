@@ -60,6 +60,11 @@ export class Player {
     // Initialize Weapon Rig
     this.weapon = new WeaponSystem(this.camera, this.scene, this.vfxManager);
 
+    // Explorer's Lantern / Dungeon Belt Light (Provides soft, warm immediate illumination)
+    this.lanternLight = new THREE.PointLight(0xffeedd, 0.8, 9.0);
+    this.lanternLight.position.set(0, -0.2, -0.2);
+    this.camera.add(this.lanternLight);
+
     // Set initial spawn
     this.setSpawn(1.5, 1.5);
   }

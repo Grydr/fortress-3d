@@ -10,6 +10,7 @@ import { TILE_SIZE } from './game/MapData.js';
 
 class GameApp {
   constructor() {
+    window.gameApp = this;
     this.gameState = 'PLAYING'; // 'PLAYING', 'PAUSED', 'GAMEOVER', 'VICTORY'
     this.gameTime = 0;
     this.lastTime = performance.now();
@@ -372,6 +373,7 @@ class GameApp {
             delta,
             this.player,
             sightBlockers,
+            this.level.doors,
             this.collectibles,
             (msg, type) => this.hud.showNotification(msg, type)
           );

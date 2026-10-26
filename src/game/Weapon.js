@@ -254,6 +254,23 @@ export class WeaponSystem {
 
     const hits = this.raycaster.intersectObjects(shootables, true);
 
+    // Calculate target endpoint for bullet tracer & trailing effect
+    let targetPoint;
+    if (hits.length > 0) {
+      targetPoint = hits[0].point.clone();
+    } else {
+      targetPoint = this.raycaster.ray.origin.clone().add(
+        this.raycaster.ray.direction.clone().multiplyScalar(currentWep.range)
+      );
+    }
+
+    // Spawn Bullet Tracer & Trailing Effect for Firearms (Luger P08 & MP40)
+    if (this.currentSlot === 2 || this.currentSlot === 3) {
+      const muzzleWorldPos = new THREE.Vector3();
+      this.muzzleLight.getWorldPosition(muzzleWorldPos);
+      this.vfxManager.createBulletTracer(muzzleWorldPos, targetPoint, true);
+    }
+
     if (hits.length > 0) {
       const hit = hits[0];
       const hitPoint = hit.point;

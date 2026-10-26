@@ -22,16 +22,20 @@ export class LevelBuilder {
   }
 
   initEnvironment() {
-    // Castle Dungeon Atmospheric Fog
-    this.scene.fog = new THREE.FogExp2(0x0e1117, 0.038);
-    this.scene.background = new THREE.Color(0x0e1117);
+    // Castle Dungeon Atmospheric Fog (Balanced depth visibility)
+    this.scene.fog = new THREE.FogExp2(0x16181f, 0.024);
+    this.scene.background = new THREE.Color(0x16181f);
 
-    // 1. Hemisphere Light (Soft castle ambient fill: cool blue sky / warm stone ground)
-    const hemiLight = new THREE.HemisphereLight(0x4a6572, 0x221a15, 0.5);
+    // 1. Hemisphere Light (Soft castle ambient fill: cool sky / warm stone ground)
+    const hemiLight = new THREE.HemisphereLight(0x70889b, 0x3d3228, 0.75);
     this.scene.add(hemiLight);
 
-    // 2. Directional Light (Moonbeam through ceiling grates)
-    const dirLight = new THREE.DirectionalLight(0x8fa3b8, 0.65);
+    // 2. Base Dungeon Ambient Light (Ensures dark corridors remain legible and atmospheric)
+    const ambientLight = new THREE.AmbientLight(0x483e35, 0.55);
+    this.scene.add(ambientLight);
+
+    // 3. Directional Light (Moonbeam through ceiling grates)
+    const dirLight = new THREE.DirectionalLight(0xadc4db, 0.95);
     dirLight.position.set(30, 45, 25);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -235,7 +239,7 @@ export class LevelBuilder {
     torchGroup.add(cup);
 
     // Dynamic Flickering PointLight (Shadow caster)
-    const torchLight = new THREE.PointLight(0xff9922, 2.4, 9.5);
+    const torchLight = new THREE.PointLight(0xffa233, 3.4, 13.0);
     torchLight.position.set(0, 0.6, 0.25);
     torchLight.castShadow = true;
     torchLight.shadow.bias = -0.002;
