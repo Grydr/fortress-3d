@@ -229,17 +229,7 @@ class GameApp {
 
     // Reset Enemies
     for (const e of this.level.enemies) {
-      e.health = e.maxHealth;
-      e.isDead = false;
-      e.state = 'PATROL';
-      e.deathTimer = 0;
-      e.group.position.copy(e.worldPos);
-      e.group.rotation.y = e.config.rot || 0;
-      e.torso.rotation.set(0, 0, 0);
-      e.leftArm.rotation.set(0, 0, 0);
-      e.rightArm.rotation.set(0, 0, 0);
-      e.leftLeg.rotation.set(0, 0, 0);
-      e.rightLeg.rotation.set(0, 0, 0);
+      e.reset();
     }
 
     // Reset VFX

@@ -10,6 +10,12 @@ export class VFXManager {
     this.torches = [];
     this.portalVFX = null;
 
+    // Persistent explosion flash light (kept in scene at zero intensity so the
+    // light count never changes, which would trigger a full shader recompile)
+    this.flashLight = new THREE.PointLight(0xff6600, 0, 10);
+    this.flashTimer = 0;
+    this.scene.add(this.flashLight);
+
     this.radialTexture = TextureGenerator.getRadialParticle();
     this.bloodTexture = TextureGenerator.getBloodParticle();
     this.smokeTexture = TextureGenerator.getSmokeParticle();
@@ -265,21 +271,9 @@ export class VFXManager {
    */
   createExplosion(position) {
     // 1. Dynamic Flash Light
-    const flashLight = new THREE.PointLight(0xff6600, 8.0, 10);
-    flashLight.position.copy(position);
-    this.scene.add(flashLight);
-
-    let flashTimer = 0.2;
-    const updateFlash = (delta) => {
-      flashTimer -= delta;
-      if (flashTimer <= 0) {
-        this.scene.remove(flashLight);
-        flashLight.dispose();
-      } else {
-        flashLight.intensity = (flashTimer / 0.2) * 8.0;
-      }
-    };
-    this.particles.push({ isLight: true, update: updateFlash, life: 0.2, maxLife: 0.2 });
+    this.flashLight.position.copy(position);
+    this.flashLight.intensity = 8.0;
+    this.flashTimer = 0.2;
 
     // 2. Expanding Shockwave Ring
     const ringGeo = new THREE.RingGeometry(0.1, 0.4, 32);
@@ -442,15 +436,15 @@ export class VFXManager {
    * Frame update for all particles, torches, and portal animations
    */
   update(delta, camera) {
+    // 0. Fade explosion flash
+    if (this.flashTimer > 0) {
+      this.flashTimer = Math.max(0, this.flashTimer - delta);
+      this.flashLight.intensity = (this.flashTimer / 0.2) * 8.0;
+    }
+
     // 1. Update Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      if (p.isLight) {
-        p.update(delta);
-        if (p.life <= 0) this.particles.splice(i, 1);
-        continue;
-      }
-
       p.life -= delta;
       if (p.life <= 0) {
         this.scene.remove(p.mesh);
@@ -626,5 +620,7 @@ export class VFXManager {
       }
     }
     this.tracers = [];
+    this.flashTimer = 0;
+    this.flashLight.intensity = 0;
   }
 }

@@ -14,6 +14,27 @@ export class CollectibleManager {
 
     // Cache loaded GLTF templates
     this.gltfCache = new Map();
+
+    // Retired aura lights stay in the scene at zero intensity. Adding/removing lights
+    // changes the scene light count, which forces Three.js to recompile every shader
+    // (a visible freeze on pickup). Reusing lights keeps the count constant.
+    // One spare is pre-allocated for the Gold Key the Commander drops mid-game.
+    this.spareLights = [];
+    this.retireLight(new THREE.PointLight(0xffffff, 0, 2.5));
+  }
+
+  retireLight(light) {
+    light.intensity = 0;
+    this.scene.attach(light);
+    this.spareLights.push(light);
+  }
+
+  acquireLight(color) {
+    const light = this.spareLights.pop() || new THREE.PointLight(color, 0.9, 2.5);
+    light.color.setHex(color);
+    light.intensity = 0.9;
+    light.distance = 2.5;
+    return light;
   }
 
   async loadGLTFModels() {
@@ -151,8 +172,8 @@ export class CollectibleManager {
     // Glowing aura point light for key quest items
     let auraLight = null;
     if (lightColor) {
-      auraLight = new THREE.PointLight(lightColor, 0.9, 2.5);
-      auraLight.position.y = 0.2;
+      auraLight = this.acquireLight(lightColor);
+      auraLight.position.set(0, 0.2, 0);
       group.add(auraLight);
     }
 
@@ -334,6 +355,7 @@ export class CollectibleManager {
 
         if (pickedUp) {
           item.isCollected = true;
+          if (item.auraLight) this.retireLight(item.auraLight);
           this.scene.remove(item.group);
           this.items.splice(i, 1);
         }

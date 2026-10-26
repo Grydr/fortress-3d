@@ -39,6 +39,7 @@ export class Enemy {
     this.group = new THREE.Group();
     this.group.name = `Enemy_${this.type}_${config.x}_${config.z}`;
     this.worldPos = new THREE.Vector3(config.x * TILE_SIZE + TILE_SIZE / 2, 0, config.z * TILE_SIZE + TILE_SIZE / 2);
+    this.spawnPos = this.worldPos.clone();
     this.group.position.copy(this.worldPos);
     this.group.rotation.y = config.rot || 0;
 
@@ -203,6 +204,39 @@ export class Enemy {
     this.group.userData = { enemy: this, isShootable: true };
     this.torso.userData = { enemy: this, isShootable: true };
     this.head.userData = { enemy: this, isShootable: true, isHeadshot: true };
+  }
+
+  /**
+   * Restore spawn state, including the joint positions moved by the death collapse
+   * (otherwise a revived guard keeps its lowered torso/hips and walks sunk into the floor).
+   */
+  reset() {
+    this.health = this.maxHealth;
+    this.isDead = false;
+    this.state = 'PATROL';
+    this.deathTimer = 0;
+    this.flinchTimer = 0;
+    this.fireTimer = 0;
+    this.walkCycle = 0;
+    this.currentPatrolIdx = 0;
+    this.currentPath = [];
+    this.pathIndex = 0;
+    this.pathTimer = 0;
+    this.droppedKey = false;
+
+    this.worldPos.copy(this.spawnPos);
+    this.group.position.copy(this.spawnPos);
+    this.group.rotation.y = this.config.rot || 0;
+
+    this.torso.position.y = 1.05;
+    this.leftLeg.position.y = 0.70;
+    this.rightLeg.position.y = 0.70;
+    this.torso.rotation.set(0, 0, 0);
+    this.leftArm.rotation.set(0, 0, 0);
+    this.rightArm.rotation.set(0, 0, 0);
+    this.leftLeg.rotation.set(0, 0, 0);
+    this.rightLeg.rotation.set(0, 0, 0);
+    this.muzzleLight.intensity = 0;
   }
 
   takeDamage(amount, player, vfxManager) {
