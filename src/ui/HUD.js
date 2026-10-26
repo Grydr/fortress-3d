@@ -187,6 +187,8 @@ export class HUD {
         </div>
         <div class="credits-content">
           <p><strong>Mata Kuliah:</strong> EF234504 · Grafika Komputer (Semester 5)</p>
+          <p><strong>Kelompok:</strong> YOLO</p>
+          <p><strong>Anggota Tim:</strong> Erlangga Rizqi Dwi Raswanto (5025241179), Jalu Cahyo Senodiputro (5025241155)</p>
           <p><strong>Topik:</strong> Topik 5 — Escape Room 3D (Fortress 3D: Iron Breach)</p>
           <p><strong>Fitur & Syarat Terpenuhi:</strong></p>
           <ul>
@@ -203,7 +205,7 @@ export class HUD {
             <li>✔ Dungeon-Themed HUD (Wrought-Iron Frames, Brass Accents, Blood-Ruby Vitality, Realtime Map, Objectives)</li>
           </ul>
           <p><strong>Asset & Audio Credits:</strong></p>
-          <p>Source code, shader/texture composition, game logic, dungeon UI/HUD, 3D architecture, and VFX created by Kelompok Grafika Komputer. Procedural sound synthesis powered by Web Audio API.</p>
+          <p>Source code, shader/texture composition, game logic, dungeon UI/HUD, 3D architecture, and VFX created by Kelompok YOLO (Erlangga Rizqi Dwi Raswanto & Jalu Cahyo Senodiputro). Procedural sound synthesis powered by Web Audio API.</p>
         </div>
         <button id="btn-close-credits" class="btn-dungeon">CLOSE</button>
       </div>

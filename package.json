@@ -16,7 +16,7 @@
     "webgl",
     "pbr"
   ],
-  "author": "Kelompok Grafika Komputer",
+  "author": "Kelompok YOLO (Erlangga Rizqi Dwi Raswanto - 5025241179, Jalu Cahyo Senodiputro - 5025241155)",
   "license": "MIT",
   "dependencies": {
     "three": "^0.186.1"

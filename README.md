@@ -6,6 +6,22 @@ Sebuah 3D First-Person Shooter (FPS) Interactive Mini-Game berbasis browser yang
 
 ---
 
+## 👥 Tim Pengembang (Kelompok: YOLO)
+
+| No | NRP | Nama Anggota |
+| :-: | :--- | :--- |
+| 1 | 5025241179 | Erlangga Rizqi Dwi Raswanto |
+| 2 | 5025241155 | Jalu Cahyo Senodiputro |
+
+### 📋 Pembagian Tugas & Kontribusi
+
+| No | NRP | Nama Anggota | Fokus & Kontribusi Pengerjaan |
+| :-: | :--- | :--- | :--- |
+| 1 | 5025241179 | Erlangga Rizqi Dwi Raswanto | *(Akan diisi)* |
+| 2 | 5025241155 | Jalu Cahyo Senodiputro | *(Akan diisi)* |
+
+---
+
 ## 🎮 Live Preview & Cara Menjalankan
 
 ### Persyaratan:
@@ -131,6 +147,7 @@ wolfenstein/
 
 ## 📜 Orisinalitas & Asset Credits
 
+- **Pengembang:** Kelompok YOLO (Erlangga Rizqi Dwi Raswanto & Jalu Cahyo Senodiputro)
 - **Source Code & Game Logic:** Dibuat secara mandiri dan orisinal oleh kelompok menggunakan Three.js API standard.
 - **Scene Composition & Level Design:** Desain grid kastil, pencahayaan multi-light PBR, dan interaksi gameplay dibuat dari nol.
 - **Model 3D GLTF/GLB:** Dihasilkan secara prosedural dan diekspor menggunakan Three.js `GLTFExporter` untuk format binary `.glb` yang kompatibel glTF 2.0.
