@@ -131,6 +131,11 @@ class GameApp {
     this.input.onTogglePause = () => {
       this.togglePause();
     };
+
+    // Browser eats the first Escape while pointer-locked, so pause when the lock is lost
+    this.input.onPointerLockLost = () => {
+      if (this.gameState === 'PLAYING') this.togglePause(true);
+    };
   }
 
   bindEvents() {
@@ -386,7 +391,8 @@ class GameApp {
           // If boss dropped Gold Key, spawn it at boss position
           if (enemy.droppedKey) {
             enemy.droppedKey = false;
-            this.collectibles.spawnItem('gold_key', enemy.worldPos.x / TILE_SIZE, enemy.worldPos.z / TILE_SIZE);
+            // Spawn on the tile the Commander died in (spawnItem adds the tile centre offset)
+            this.collectibles.spawnItem('gold_key', Math.floor(enemy.group.position.x / TILE_SIZE), Math.floor(enemy.group.position.z / TILE_SIZE));
             this.hud.showNotification('The Commander dropped the Gold Vault Key!', 'gold');
           }
         }

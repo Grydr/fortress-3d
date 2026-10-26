@@ -35,6 +35,8 @@ export class InputManager {
     this.onWeaponSwitch = null;
     this.onTogglePause = null;
     this.onToggleHelp = null;
+    this.onPointerLockLost = null;
+    this.lockLostAt = -Infinity;
 
     // Touch fallback state
     this.touchStartX = 0;
@@ -51,7 +53,12 @@ export class InputManager {
 
     // Pointer Lock listeners
     document.addEventListener('pointerlockchange', () => {
+      const wasLocked = this.isPointerLocked;
       this.isPointerLocked = document.pointerLockElement === this.domElement;
+      if (wasLocked && !this.isPointerLocked) {
+        this.lockLostAt = performance.now();
+        if (this.onPointerLockLost) this.onPointerLockLost();
+      }
     });
 
     this.domElement.addEventListener('click', () => {
@@ -180,6 +187,8 @@ export class InputManager {
         this.selectWeapon(3); // MP40 Machine Gun
         break;
       case 'Escape':
+        // Ignore the Escape that just released pointer lock, or it would unpause immediately
+        if (performance.now() - this.lockLostAt < 250) break;
         if (this.onTogglePause) this.onTogglePause();
         break;
       case 'KeyH':

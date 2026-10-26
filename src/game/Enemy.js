@@ -379,6 +379,14 @@ export class Enemy {
     return hits.length === 0;
   }
 
+  turnTowards(targetAngle, t) {
+    // Shortest signed angle difference, wrapped to [-PI, PI]
+    const current = this.group.rotation.y;
+    const diff = Math.atan2(Math.sin(targetAngle - current), Math.cos(targetAngle - current));
+    const next = current + diff * Math.min(1, t);
+    this.group.rotation.y = Math.atan2(Math.sin(next), Math.cos(next));
+  }
+
   update(delta, player, obstacles, doors, collectibles, onFeedback) {
     if (this.isDead) {
       // Natural Ragdoll Death Collapse Animation:
@@ -442,7 +450,7 @@ export class Enemy {
         moveDir.normalize();
         this.moveWithCollision(moveDir.x, moveDir.z, this.speed * 0.55, delta, doors);
         const targetAngle = Math.atan2(moveDir.x, moveDir.z);
-        this.group.rotation.y = THREE.MathUtils.lerp(this.group.rotation.y, targetAngle, delta * 5);
+        this.turnTowards(targetAngle, delta * 5);
 
         // Natural Pendulum Walk Animation (from hip and shoulder joints)
         this.walkCycle += delta * 6;
@@ -502,7 +510,7 @@ export class Enemy {
       const moveDir = moveTarget.clone().sub(myPos).normalize();
       this.moveWithCollision(moveDir.x, moveDir.z, this.speed, delta, doors);
       const targetAngle = Math.atan2(moveDir.x, moveDir.z);
-      this.group.rotation.y = THREE.MathUtils.lerp(this.group.rotation.y, targetAngle, delta * 8);
+      this.turnTowards(targetAngle, delta * 8);
 
       // Fast Chase Walk Animation:
       // Legs swing vigorously from hips; left arm swings, right arm raised ready to fire
