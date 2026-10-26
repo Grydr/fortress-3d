@@ -206,11 +206,48 @@ export class LevelBuilder {
   }
 
   /**
+   * Find an open tile + adjacent solid wall to hang a torch on.
+   * Prefers the requested side, then any other side; if the given tile is itself
+   * solid, searches its open neighbours. Columns (3) and secret walls (4) are skipped
+   * because they are not flush full-tile walls.
+   */
+  findTorchMount(tx, tz, preferredSide) {
+    const tileAt = (x, z) => (MAP_LAYOUT[z] ? MAP_LAYOUT[z][x] : undefined);
+    const isWall = (x, z) => tileAt(x, z) === '1' || tileAt(x, z) === '2';
+    const isOpen = (x, z) => {
+      const t = tileAt(x, z);
+      return t !== undefined && !['1', '2', '3', '4', 'D', 'S', 'G'].includes(t);
+    };
+    const sides = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
+    const order = [preferredSide, ...Object.keys(sides).filter((s) => s !== preferredSide)];
+
+    const candidates = [[tx, tz], [tx, tz + 1], [tx, tz - 1], [tx + 1, tz], [tx - 1, tz]];
+    for (const [cx, cz] of candidates) {
+      if (!isOpen(cx, cz)) continue;
+      for (const side of order) {
+        const [dx, dz] = sides[side];
+        if (isWall(cx + dx, cz + dz)) return { tx: cx, tz: cz, side };
+      }
+    }
+    return null;
+  }
+
+  /**
    * Build Castle Wall Torch Sconce (Parent-Child Scene Graph + PointLight)
    */
   buildTorchSconce(gridX, gridZ, wallSide) {
-    const worldX = gridX * TILE_SIZE;
-    const worldZ = gridZ * TILE_SIZE;
+    // Snap the sconce onto an actual wall face so it never floats mid-corridor.
+    // wallSide = side of the open tile where the wall is (sconce faces away from it).
+    const mount = this.findTorchMount(Math.floor(gridX), Math.floor(gridZ), wallSide);
+    if (!mount) {
+      console.warn(`Torch at (${gridX}, ${gridZ}) has no adjacent wall, skipped`);
+      return;
+    }
+    wallSide = mount.side;
+    const sideDir = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }[wallSide];
+    const faceOffset = TILE_SIZE / 2 - 0.06; // bracket sits flush against the wall surface
+    const worldX = mount.tx * TILE_SIZE + TILE_SIZE / 2 + sideDir[0] * faceOffset;
+    const worldZ = mount.tz * TILE_SIZE + TILE_SIZE / 2 + sideDir[1] * faceOffset;
 
     const torchGroup = new THREE.Group();
     torchGroup.position.set(worldX, 2.2, worldZ);
