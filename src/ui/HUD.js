@@ -81,6 +81,13 @@ export class HUD {
     `;
     this.container.appendChild(this.topHUD);
 
+    // Remember the original objective markup so restarts can restore it
+    this.objectiveDefaults = [...this.topHUD.querySelectorAll('#objective-list li')].map((li) => ({
+      el: li,
+      className: li.className,
+      text: li.textContent,
+    }));
+
     // 4. Notification Container reference
     this.notificationBox = this.topHUD.querySelector('#notification-box');
 
@@ -511,6 +518,13 @@ export class HUD {
     }, 2800);
   }
 
+  resetObjectives() {
+    for (const d of this.objectiveDefaults) {
+      d.el.className = d.className;
+      d.el.textContent = d.text;
+    }
+  }
+
   setInteractionPrompt(text) {
     if (!this.promptEl) return;
     if (text) {
@@ -571,6 +585,12 @@ export class HUD {
           statusText.className = 'status-pill status-perished';
         }
       }
+    }
+
+    // 3b. Update Lives Counter
+    const livesEl = document.getElementById('dash-lives-val');
+    if (livesEl) {
+      livesEl.textContent = player.lives === 1 ? '1 LIFE' : `${player.lives} LIVES`;
     }
 
     // 4. Update Ammo & Weapon (Tarnished Brass & Lead Theme)

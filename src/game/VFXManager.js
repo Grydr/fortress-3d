@@ -19,6 +19,33 @@ export class VFXManager {
     this.radialTexture = TextureGenerator.getRadialParticle();
     this.bloodTexture = TextureGenerator.getBloodParticle();
     this.smokeTexture = TextureGenerator.getSmokeParticle();
+
+    this.createProgramKeepAlive();
+  }
+
+  /**
+   * three.js frees a shader program once no material uses it, so the next effect would
+   * recompile it mid-game (frame stutter). These hidden meshes sit far below the floor and
+   * cover each material variant the effects use, keeping every program alive.
+   */
+  createProgramKeepAlive() {
+    const geo = new THREE.PlaneGeometry(0.001, 0.001);
+    const variants = [
+      { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide },
+      { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false },
+      { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, map: this.radialTexture },
+      { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, map: this.smokeTexture },
+      { transparent: true, depthWrite: false, map: this.smokeTexture },
+      { transparent: true, depthWrite: false, map: this.bloodTexture },
+      { transparent: true, blending: THREE.AdditiveBlending, side: THREE.DoubleSide },
+      { transparent: true, blending: THREE.AdditiveBlending },
+    ];
+    for (const opts of variants) {
+      const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial(opts));
+      mesh.position.y = -100;
+      mesh.frustumCulled = false;
+      this.scene.add(mesh);
+    }
   }
 
   /**

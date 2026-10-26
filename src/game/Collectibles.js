@@ -10,6 +10,10 @@ export class CollectibleManager {
     this.vfxManager = vfxManager;
     this.items = [];
     this.barrels = [];
+    // Level-start item spawns (no runtime drops), replayed by reset()
+    this.initialItemSpawns = [];
+    // Bumped on reset() so pending chain-reaction explosions from before a restart are ignored
+    this.resetGeneration = 0;
     this.gltfLoader = new GLTFLoader();
 
     // Cache loaded GLTF templates
@@ -18,15 +22,24 @@ export class CollectibleManager {
     // Retired aura lights stay in the scene at zero intensity. Adding/removing lights
     // changes the scene light count, which forces Three.js to recompile every shader
     // (a visible freeze on pickup). Reusing lights keeps the count constant.
-    // One spare is pre-allocated for the Gold Key the Commander drops mid-game.
+    // LevelBuilder calls ensureSpareLights(1) after the level is built, so one spare
+    // is always available for the Gold Key the Commander drops mid-game.
     this.spareLights = [];
-    this.retireLight(new THREE.PointLight(0xffffff, 0, 2.5));
   }
 
   retireLight(light) {
     light.intensity = 0;
     this.scene.attach(light);
     this.spareLights.push(light);
+  }
+
+  /**
+   * Make sure at least `count` retired lights are pooled (adds new ones to the scene if needed)
+   */
+  ensureSpareLights(count) {
+    while (this.spareLights.length < count) {
+      this.retireLight(new THREE.PointLight(0xffffff, 0, 2.5));
+    }
   }
 
   acquireLight(color) {
@@ -278,7 +291,9 @@ export class CollectibleManager {
       if (!other.isExploded && other !== barrelData) {
         const dist = pos.distanceTo(other.mesh.position);
         if (dist < blastRadius) {
+          const gen = this.resetGeneration;
           setTimeout(() => {
+            if (gen !== this.resetGeneration) return;
             this.explodeBarrel(other, enemies, player, onFeedback);
           }, 120);
         }
@@ -361,6 +376,35 @@ export class CollectibleManager {
         }
       }
     }
+  }
+
+  /**
+   * Restore pickups and barrels to their level-start state (used on restart)
+   */
+  reset() {
+    this.resetGeneration++;
+
+    // Remove every uncollected item (including runtime drops). Lights are retired, never removed.
+    for (const item of this.items) {
+      if (item.auraLight) this.retireLight(item.auraLight);
+      this.scene.remove(item.group);
+    }
+    this.items = [];
+    for (const s of this.initialItemSpawns) {
+      this.spawnItem(s.type, s.gridX, s.gridZ);
+    }
+
+    // Re-arm exploded barrels in place (keeps their entries in level.shootableMeshes valid)
+    for (const b of this.barrels) {
+      if (!b.isExploded) continue;
+      b.isExploded = false;
+      b.health = 20;
+      b.mesh.geometry = new THREE.CylinderGeometry(0.55, 0.55, 1.4, 20);
+      this.scene.add(b.mesh);
+    }
+
+    // Keep a spare light for a Commander Gold Key drop after restart
+    this.ensureSpareLights(1);
   }
 
   isBarrelBlocking(pos, radius = 0.4) {

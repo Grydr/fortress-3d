@@ -200,9 +200,13 @@ export class LevelBuilder {
         this.buildWallBanner(ent.x, ent.z, ent.facing);
       } else {
         // Collectible items (keys, medkits, ammo, relic, chalice)
+        this.collectibles.initialItemSpawns.push({ type: ent.type, gridX: ent.x, gridZ: ent.z });
         this.collectibles.spawnItem(ent.type, ent.x, ent.z);
       }
     }
+
+    // Reserve a pooled light for the Gold Key the Commander drops at runtime
+    this.collectibles.ensureSpareLights(1);
   }
 
   /**

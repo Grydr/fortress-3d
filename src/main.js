@@ -211,10 +211,16 @@ class GameApp {
     this.player.inventory.hasSilverKey = false;
     this.player.inventory.hasGoldKey = false;
     this.player.hasMP40 = false;
+    this.player.lives = 3;
+    this.player.invulnerableTimer = 0;
     this.player.setSpawn(1.5, 1.5, -Math.PI / 2);
     this.player.weapon.equip(2, true);
 
     this.gameTime = 0;
+
+    // Reset Collectibles, Barrels & Objectives
+    this.collectibles.reset();
+    this.hud.resetObjectives();
 
     // Reset Doors
     for (const d of this.level.doors) {
@@ -290,6 +296,15 @@ class GameApp {
     }
 
     this.hud.setInteractionPrompt(null);
+  }
+
+  respawnAfterDeath() {
+    this.player.lives -= 1;
+    this.player.health = 100;
+    this.player.invulnerableTimer = 2;
+    this.player.setSpawn(1.5, 1.5, -Math.PI / 2);
+    const left = this.player.lives;
+    this.hud.showNotification(`You died! ${left} ${left === 1 ? 'life' : 'lives'} remaining.`, 'error');
   }
 
   handleGameOver() {
@@ -387,7 +402,12 @@ class GameApp {
 
         // 7. Check Game Over / Victory Conditions
         if (this.player.health <= 0) {
-          this.handleGameOver();
+          if (this.player.lives > 1) {
+            this.respawnAfterDeath();
+          } else {
+            this.player.lives = 0;
+            this.handleGameOver();
+          }
         } else if (this.player.hasEscaped) {
           this.handleVictory();
         }

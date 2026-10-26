@@ -26,6 +26,7 @@ export class Player {
     this.maxAmmo = 99;
     this.score = 0;
     this.lives = 3;
+    this.invulnerableTimer = 0; // seconds of damage immunity after respawning
     this.enemiesKilled = 0;
     this.hasFoundRelic = false;
     this.hasEscaped = false;
@@ -81,7 +82,7 @@ export class Player {
   }
 
   takeDamage(amount) {
-    if (this.health <= 0) return;
+    if (this.health <= 0 || this.invulnerableTimer > 0) return;
     this.health = Math.max(0, this.health - amount);
     this.damageFlash = 0.6;
     this.shakeIntensity = Math.min(0.25, amount * 0.01);
@@ -253,6 +254,11 @@ export class Player {
     // Damage Flash Decay
     if (this.damageFlash > 0) {
       this.damageFlash = Math.max(0, this.damageFlash - delta * 2.0);
+    }
+
+    // Respawn Invulnerability Decay
+    if (this.invulnerableTimer > 0) {
+      this.invulnerableTimer = Math.max(0, this.invulnerableTimer - delta);
     }
 
     // Update Camera Position
