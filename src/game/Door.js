@@ -18,13 +18,15 @@ export class Door {
     // Secret push-wall specific animation phases
     this.isSecret = type === 'secret';
     this.secretPhase = 0; // 0: push back, 1: slide sideways
+    this.pushDirZ = 1; // local Z recess direction, set on interact (away from the player)
+    this.slideDirX = 1; // local X slide direction, always into a solid neighbouring wall
     if (this.isSecret) {
+      const isSolid = (x, z) => MAP_LAYOUT[z] && ['1', '2'].includes(MAP_LAYOUT[z][x]);
       if (this.orientation === 'vertical') {
-        const eastIsOpen = MAP_LAYOUT[gridZ] && !['1', '2', '3', '4'].includes(MAP_LAYOUT[gridZ][gridX + 1]);
-        this.pushDirZ = eastIsOpen ? 1 : -1;
+        // Group is rotated +90deg about Y: local +X points to world -Z
+        this.slideDirX = isSolid(gridX, gridZ - 1) ? 1 : -1;
       } else {
-        const southIsOpen = MAP_LAYOUT[gridZ + 1] && !['1', '2', '3', '4'].includes(MAP_LAYOUT[gridZ + 1][gridX]);
-        this.pushDirZ = southIsOpen ? 1 : -1;
+        this.slideDirX = isSolid(gridX + 1, gridZ) ? 1 : -1;
       }
     }
 
@@ -144,8 +146,15 @@ export class Door {
   /**
    * Try interacting with door (called via Raycaster or proximity E)
    */
-  interact(inventory, onFeedback) {
+  interact(inventory, onFeedback, playerPos = null) {
     if (this.isOpen || this.isOpening) return;
+
+    if (this.isSecret && playerPos) {
+      // Recess away from the player (vertical walls: local +Z points to world +X)
+      this.pushDirZ = this.orientation === 'vertical'
+        ? (playerPos.x < this.worldX ? 1 : -1)
+        : (playerPos.z < this.worldZ ? 1 : -1);
+    }
 
     if (this.type === 'silver' && !inventory.hasSilverKey) {
       sound.playDoorLocked();
@@ -181,17 +190,17 @@ export class Door {
 
       if (this.isSecret) {
         // Secret wall animation:
-        // Phase 1 (0 to 0.4): Push back into the room away from the hallway
-        // Phase 2 (0.4 to 1.0): Slide sideways into the adjoining wall
-        const dir = this.pushDirZ || 1;
-        const pushDist = dir * (TILE_SIZE * 0.95);
-        if (this.openProgress < 0.4) {
-          const t = this.openProgress / 0.4;
-          this.leaf.position.z = t * pushDist;
+        // Phase 1 (0 to 0.3): Shallow recess away from the player
+        // Phase 2 (0.3 to 1.0): Slide sideways a full tile into the solid neighbouring
+        // wall, easing back flush so it never pokes into the rooms on either side
+        const recess = this.pushDirZ * (TILE_SIZE * 0.05);
+        if (this.openProgress < 0.3) {
+          const t = this.openProgress / 0.3;
+          this.leaf.position.z = t * recess;
         } else {
-          const t = (this.openProgress - 0.4) / 0.6;
-          this.leaf.position.z = pushDist;
-          this.leaf.position.x = t * (TILE_SIZE * 0.95);
+          const t = (this.openProgress - 0.3) / 0.7;
+          this.leaf.position.z = (1 - t) * recess;
+          this.leaf.position.x = t * TILE_SIZE * this.slideDirX;
         }
       } else {
         // Sliding door leaf slides up into the ceiling or sideways
@@ -203,6 +212,8 @@ export class Door {
       if (this.openProgress >= 1.0) {
         this.isOpen = true;
         this.isOpening = false;
+        // Fully inside the neighbouring wall now; hide to avoid coplanar z-fighting
+        if (this.isSecret) this.leaf.visible = false;
       }
     }
   }

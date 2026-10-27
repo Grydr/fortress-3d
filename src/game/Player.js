@@ -108,7 +108,7 @@ export class Player {
       }
 
       if (door) {
-        door.interact(this.inventory, onFeedback);
+        door.interact(this.inventory, onFeedback, this.position);
         return;
       }
 

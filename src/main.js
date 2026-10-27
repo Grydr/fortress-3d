@@ -235,6 +235,7 @@ class GameApp {
       if (d.leaf) {
         d.leaf.position.x = 0;
         d.leaf.position.z = 0;
+        d.leaf.visible = true;
       }
     }
 
