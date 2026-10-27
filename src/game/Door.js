@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { TextureGenerator } from '../core/TextureGenerator.js';
 import { sound } from '../core/AudioManager.js';
-import { TILE_SIZE, WALL_HEIGHT } from './MapData.js';
+import { TILE_SIZE, WALL_HEIGHT, MAP_LAYOUT } from './MapData.js';
 
 export class Door {
   constructor(gridX, gridZ, type = 'normal', orientation = 'horizontal') {
@@ -18,6 +18,15 @@ export class Door {
     // Secret push-wall specific animation phases
     this.isSecret = type === 'secret';
     this.secretPhase = 0; // 0: push back, 1: slide sideways
+    if (this.isSecret) {
+      if (this.orientation === 'vertical') {
+        const eastIsOpen = MAP_LAYOUT[gridZ] && !['1', '2', '3', '4'].includes(MAP_LAYOUT[gridZ][gridX + 1]);
+        this.pushDirZ = eastIsOpen ? 1 : -1;
+      } else {
+        const southIsOpen = MAP_LAYOUT[gridZ + 1] && !['1', '2', '3', '4'].includes(MAP_LAYOUT[gridZ + 1][gridX]);
+        this.pushDirZ = southIsOpen ? 1 : -1;
+      }
+    }
 
     this.group = new THREE.Group();
     this.group.name = `Door_${type}_${gridX}_${gridZ}`;
@@ -172,14 +181,16 @@ export class Door {
 
       if (this.isSecret) {
         // Secret wall animation:
-        // Phase 1 (0 to 0.4): Push back along local Z
-        // Phase 2 (0.4 to 1.0): Slide sideways along local X
+        // Phase 1 (0 to 0.4): Push back into the room away from the hallway
+        // Phase 2 (0.4 to 1.0): Slide sideways into the adjoining wall
+        const dir = this.pushDirZ || 1;
+        const pushDist = dir * (TILE_SIZE * 0.95);
         if (this.openProgress < 0.4) {
           const t = this.openProgress / 0.4;
-          this.leaf.position.z = -t * (TILE_SIZE * 0.95);
+          this.leaf.position.z = t * pushDist;
         } else {
           const t = (this.openProgress - 0.4) / 0.6;
-          this.leaf.position.z = -(TILE_SIZE * 0.95);
+          this.leaf.position.z = pushDist;
           this.leaf.position.x = t * (TILE_SIZE * 0.95);
         }
       } else {

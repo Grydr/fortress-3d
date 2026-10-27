@@ -173,7 +173,10 @@ export class LevelBuilder {
           this.shootableMeshes.push(door.leaf);
         } else if (tile === '4') {
           // Secret Push-Wall
-          const secretDoor = new Door(x, z, 'secret', 'horizontal');
+          const isHoriz = (MAP_LAYOUT[z][x - 1] === '1' || MAP_LAYOUT[z][x - 1] === '2') &&
+                          (MAP_LAYOUT[z][x + 1] === '1' || MAP_LAYOUT[z][x + 1] === '2');
+          const orientation = isHoriz ? 'horizontal' : 'vertical';
+          const secretDoor = new Door(x, z, 'secret', orientation);
           this.scene.add(secretDoor.group);
           this.doors.push(secretDoor);
           this.interactableMeshes.push(secretDoor.leaf);
@@ -197,7 +200,7 @@ export class LevelBuilder {
       } else if (ent.type === 'torch') {
         this.buildTorchSconce(ent.x, ent.z, ent.wallSide);
       } else if (ent.type === 'banner') {
-        this.buildWallBanner(ent.x, ent.z, ent.facing);
+        this.buildWallBanner(ent.x, ent.z, ent.wallSide || ent.facing);
       } else {
         // Collectible items (keys, medkits, ammo, relic, chalice)
         this.collectibles.initialItemSpawns.push({ type: ent.type, gridX: ent.x, gridZ: ent.z });
@@ -305,25 +308,118 @@ export class LevelBuilder {
   }
 
   /**
-   * Build Castle Wall Tapestry / Banner
+   * Find an open tile + adjacent solid wall to mount a banner flush against.
    */
-  buildWallBanner(gridX, gridZ, facing) {
+  findBannerMount(tx, tz, wallSide) {
+    const tileAt = (x, z) => (MAP_LAYOUT[z] ? MAP_LAYOUT[z][x] : undefined);
+    const isWall = (x, z) => tileAt(x, z) === '1' || tileAt(x, z) === '2';
+    const isOpen = (x, z) => {
+      const t = tileAt(x, z);
+      return t !== undefined && !['1', '2', '3', '4', 'D', 'S', 'G'].includes(t);
+    };
+    const sides = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
+    const order = [wallSide, ...Object.keys(sides).filter((s) => s !== wallSide)];
+
+    const candidates = [[tx, tz], [tx, tz + 1], [tx, tz - 1], [tx + 1, tz], [tx - 1, tz]];
+    for (const [cx, cz] of candidates) {
+      if (!isOpen(cx, cz)) continue;
+      for (const side of order) {
+        const [dx, dz] = sides[side];
+        if (isWall(cx + dx, cz + dz)) return { tx: cx, tz: cz, side };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Build Castle Wall Tapestry / Banner (Mounted flush to wall with iron crossbar, finials & brackets)
+   */
+  buildWallBanner(gridX, gridZ, wallSideOrFacing = 'north') {
+    // Convert legacy facing direction to wallSide
+    let wallSide = wallSideOrFacing;
+    if (wallSideOrFacing === 'south') wallSide = 'north';
+    else if (wallSideOrFacing === 'north') wallSide = 'south';
+    else if (wallSideOrFacing === 'east') wallSide = 'west';
+    else if (wallSideOrFacing === 'west') wallSide = 'east';
+
+    const mount = this.findBannerMount(Math.floor(gridX), Math.floor(gridZ), wallSide);
+    if (!mount) {
+      console.warn(`Banner at (${gridX}, ${gridZ}) has no adjacent wall, skipped`);
+      return;
+    }
+
+    wallSide = mount.side;
+    const sideDir = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }[wallSide];
+    // Offset flush to the stone wall face (0.02 gap to eliminate z-fighting)
+    const faceOffset = TILE_SIZE / 2 - 0.02;
+    const worldX = mount.tx * TILE_SIZE + TILE_SIZE / 2 + sideDir[0] * faceOffset;
+    const worldZ = mount.tz * TILE_SIZE + TILE_SIZE / 2 + sideDir[1] * faceOffset;
+
+    const bannerGroup = new THREE.Group();
+    bannerGroup.name = `WallBanner_${mount.tx}_${mount.tz}_${wallSide}`;
+    bannerGroup.position.set(worldX, 2.35, worldZ);
+
+    // Wall rotation: facing away from the wall into the room
+    if (wallSide === 'north') {
+      bannerGroup.rotation.y = 0; // Wall to North, banner faces South (+Z)
+    } else if (wallSide === 'south') {
+      bannerGroup.rotation.y = Math.PI; // Wall to South, banner faces North (-Z)
+    } else if (wallSide === 'west') {
+      bannerGroup.rotation.y = Math.PI / 2; // Wall to West, banner faces East (+X)
+    } else if (wallSide === 'east') {
+      bannerGroup.rotation.y = -Math.PI / 2; // Wall to East, banner faces West (-X)
+    }
+
+    // 1. Cast-Iron Wall Mounting Brackets (bolted into the stone wall)
+    const bracketGeo = new THREE.BoxGeometry(0.06, 0.12, 0.08);
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x161616, metalness: 0.9, roughness: 0.25 });
+    const leftBracket = new THREE.Mesh(bracketGeo, ironMat);
+    leftBracket.position.set(-0.68, 0.5, -0.02);
+    leftBracket.castShadow = true;
+    bannerGroup.add(leftBracket);
+
+    const rightBracket = new THREE.Mesh(bracketGeo, ironMat);
+    rightBracket.position.set(0.68, 0.5, -0.02);
+    rightBracket.castShadow = true;
+    bannerGroup.add(rightBracket);
+
+    // 2. Horizontal Mounting Crossbar / Rod
+    const rodGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.75, 12);
+    const rodMat = new THREE.MeshStandardMaterial({ color: 0x241d17, metalness: 0.7, roughness: 0.35 });
+    const rod = new THREE.Mesh(rodGeo, rodMat);
+    rod.rotation.z = Math.PI / 2;
+    rod.position.set(0, 0.5, 0.02);
+    rod.castShadow = true;
+    bannerGroup.add(rod);
+
+    // 3. Ornate Golden Brass Finials on Rod Ends
+    const finialGeo = new THREE.SphereGeometry(0.055, 12, 12);
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.2 });
+    const leftFinial = new THREE.Mesh(finialGeo, goldMat);
+    leftFinial.position.set(-0.9, 0.5, 0.02);
+    bannerGroup.add(leftFinial);
+
+    const rightFinial = new THREE.Mesh(finialGeo, goldMat);
+    rightFinial.position.set(0.9, 0.5, 0.02);
+    bannerGroup.add(rightFinial);
+
+    // 4. Banner Fabric Tapestry
     const bannerTex = TextureGenerator.getCastleBanner();
     const bannerMat = new THREE.MeshStandardMaterial({
       map: bannerTex,
-      roughness: 0.75,
-      metalness: 0.1,
+      roughness: 0.8,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
     });
-    const bannerGeo = new THREE.PlaneGeometry(1.6, 3.0);
-    const banner = new THREE.Mesh(bannerGeo, bannerMat);
-    banner.position.set(gridX * TILE_SIZE, 1.8, gridZ * TILE_SIZE);
+    const bannerGeo = new THREE.PlaneGeometry(1.5, 2.4);
+    const bannerMesh = new THREE.Mesh(bannerGeo, bannerMat);
+    // Hangs down from the rod at y = 0.5 to y = 0.5 - 2.4 = -1.9 (0.45m above floor)
+    bannerMesh.position.set(0, -0.7, 0.025);
+    bannerMesh.castShadow = true;
+    bannerMesh.receiveShadow = true;
+    bannerGroup.add(bannerMesh);
 
-    if (facing === 'south') banner.rotation.y = 0;
-    if (facing === 'north') banner.rotation.y = Math.PI;
-    if (facing === 'west') banner.rotation.y = -Math.PI / 2;
-    if (facing === 'east') banner.rotation.y = Math.PI / 2;
-
-    this.scene.add(banner);
+    this.scene.add(bannerGroup);
   }
 
   /**
